@@ -1,0 +1,45 @@
+---
+name: quiz-me
+description: "Runs a live multiple-choice quiz on one topic — a GitHub URL, local path, web page, the current chat session, or a concept you describe. Wrong picks get a hint and a retry, never the answer. With no source given, quizzes on the current chat session. Run only when the user calls it by name (/quiz-me)."
+---
+
+Goal: quiz the user on ONE focused topic with 5-15 multiple-choice questions, one at a time, live in chat. Wrong answers get a hint and a retry, not the answer.
+
+Keep scope small. A single concept, module, or article makes a good quiz; a whole repo does not — pick one subsystem.
+
+## Hard rules
+- **Every question is asked on its own.** Never print the question list in chat — not before the quiz, not during, not instead of asking. The user sees each question for the first time inside its own question, with no marker on the correct choice.
+- **Wrong pick → hint, not answer.** The explanation is revealed only once the question is resolved. One exception, and only this one: when eliminating the wrong pick would leave a single choice, the question is already resolved, so reveal it with the explanation rather than ask a question with one answer. Step 3 states the same rule.
+- **Write every question, option, hint, and explanation in ASD-STE100 Simplified Technical English** — see `reference-asd-ste100.md` in this folder. Short sentences. One idea per sentence. Active voice. Plain words.
+- These rules are unconditional. Trim/brief communication modes compress prose, never interaction gates.
+
+## Step 1 — Resolve the source
+- **GitHub URL** → shallow clone (`git clone --depth 1`) or `gh api` to read the files.
+- **Local path** → read directly.
+- **Web page / article** → fetch it with the CLI's web tool.
+- **Current chat session** (`chat`, "this conversation", or **no argument at all — this is the default**) → use the conversation so far as the source. If the session has no substantive content yet, say so and ask for a topic instead.
+- **A concept the user describes** → use what they gave you (ask only if a load-bearing detail is missing).
+
+## Step 2 — Draft the quiz (silently)
+Draft 5-15 questions internally — do not print them. Quality rules:
+- **Atomic:** one fact per question.
+- **Exactly one unambiguously correct answer.** No yes/no questions.
+- **Exactly 3 choices total, including the correct one.** Some question tools cap options at 4 and add their own "Other"; 3 choices fits every CLI.
+- **Distractors are real misconceptions,** not filler. No "all/none of the above". **Randomize the correct choice's position (1st, 2nd, or 3rd) independently per question** — pick the slot before writing the options list; never default to placing it first.
+- For each question also draft a short **hint** (nudges without revealing the answer) and a one-line **explanation** (shown when the question is resolved).
+- Skip trivia the user would never need to recall; fewer good questions beat many mediocre ones.
+
+## Step 3 — Quiz loop
+One question at a time, in order:
+- **question:** `Q 3/10 — <question text>`
+- **options:** the choices, correct one unmarked, no "(Recommended)" labels.
+- **Correct pick** → confirm in one line with the explanation, move to the next question.
+- **Wrong pick** → give the hint (one line, no answer), re-ask the same question with the eliminated choice removed. If only one choice would remain, the question is resolved: reveal the answer with the explanation instead of re-asking, and move on. This is the one case the hard rule allows.
+- **Free-text reply (typed, or via an "Other" option)** → judge it as an answer attempt: correct → treat as a correct pick; wrong or off-topic → give the hint and re-ask with all choices intact.
+- Track for each question whether the first pick was correct.
+
+## Step 4 — Summary
+A short plain-text recap: score as first-try-correct / total, and which questions needed retries (number + a few words each). No question dump.
+
+## Step 5 — Next steps
+Plain chat, no question menu. Offer: `/explain` on the topics that needed retries.
